@@ -76,3 +76,30 @@ if not clone_button:
 
 clone_button.click()
 
+tipo_nota_select = WebDriverWait(driver, timeout=10).until(
+    lambda driver: driver.find_element(By.ID, "inputAedf")
+)
+
+if not tipo_nota_select:
+    raise Exception("Tipo nota select not founded")
+
+tipo_nota_select.click()
+
+tipo_nota_options = tipo_nota_select.find_elements(By.TAG_NAME, "option")
+
+correct_option_list = list(
+    filter(
+        lambda option: option.get_attribute('value') == "0676722",
+        tipo_nota_options
+    )
+)
+
+correct_option = None
+if correct_option_list:
+    correct_option = correct_option_list[0]
+
+if not correct_option:
+    raise Exception("Login button not founded")
+
+correct_option.click()
+
