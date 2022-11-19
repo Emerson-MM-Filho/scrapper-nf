@@ -1,3 +1,4 @@
+from datetime import datetime
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.wait import WebDriverWait
@@ -102,4 +103,14 @@ if not correct_option:
     raise Exception("Login button not founded")
 
 correct_option.click()
+
+emissao_input = WebDriverWait(driver, timeout=10).until(
+    lambda driver: driver.find_element(By.ID, "inputDataEmissao")
+)
+if not emissao_input:
+    raise Exception(f"Data Emissão input not founded")
+
+date = datetime.now()
+date_str = date.strftime("%d/%m/%Y")
+emissao_input.send_keys(date_str)
 
