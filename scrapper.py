@@ -58,3 +58,21 @@ if not consult_button:
 
 consult_button.click()
 
+options_button = WebDriverWait(driver, timeout=10).until(
+    lambda driver: driver.find_element(By.XPATH, '//*[@id="transmitidas"]/table/tbody/tr[1]/td[11]/div/button')
+)
+
+if not options_button:
+    raise Exception("Consultar button not founded")
+
+options_button.click()
+
+clone_button = WebDriverWait(driver, timeout=10).until(
+    lambda driver: driver.find_element(By.XPATH, '//*[@id="transmitidas"]/table/tbody/tr[1]/td[11]/div/ul/li[2]/a')
+)
+
+if not clone_button:
+    raise Exception("Consultar button not founded")
+
+clone_button.click()
+
