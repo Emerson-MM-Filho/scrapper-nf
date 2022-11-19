@@ -114,3 +114,12 @@ date = datetime.now()
 date_str = date.strftime("%d/%m/%Y")
 emissao_input.send_keys(date_str)
 
+confirm_button = WebDriverWait(driver, timeout=10).until(
+    lambda driver: driver.find_element(By.XPATH, '/html/body/div[1]/div/div/div/form/div[2]/button[2]')
+)
+
+if not confirm_button:
+    raise Exception("Confirmar button not founded")
+
+confirm_button.click()
+
