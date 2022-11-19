@@ -49,3 +49,12 @@ if not submit_button:
     raise Exception("Submit button not founded")
 submit_button.click()
 
+consult_button = WebDriverWait(driver, timeout=10).until(
+    lambda driver: driver.find_element(By.XPATH, '//*[@id="transmitidas"]/form/div/div[5]/button')
+)
+
+if not consult_button:
+    raise Exception("Consultar button not founded")
+
+consult_button.click()
+
