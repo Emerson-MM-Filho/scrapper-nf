@@ -132,3 +132,12 @@ if not continue_button_1:
 
 continue_button_1.click()
 
+confirm_cfps_button = WebDriverWait(driver, timeout=10).until(
+    lambda driver: driver.find_element(By.XPATH, '/html/body/div[1]/div/div/div/form/div[2]/button[2]')
+)
+
+if not confirm_cfps_button:
+    raise Exception("Confirma CFPS button not founded")
+
+confirm_cfps_button.click()
+
