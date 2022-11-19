@@ -123,3 +123,12 @@ if not confirm_button:
 
 confirm_button.click()
 
+continue_button_1 = WebDriverWait(driver, timeout=10).until(
+    lambda driver: driver.find_element(By.XPATH, '//*[@id="content-new-register"]/div/div[6]/div/div[3]/div[1]/form/div[6]/button[2]')
+)
+
+if not continue_button_1:
+    raise Exception("Continuar button 1 not founded")
+
+continue_button_1.click()
+
