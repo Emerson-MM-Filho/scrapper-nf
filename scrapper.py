@@ -150,3 +150,24 @@ if not continue_button_2:
 
 continue_button_2.click()
 
+transmit_button = WebDriverWait(driver, timeout=10).until(
+    lambda driver: driver.find_element(By.ID, 'transmitir')
+)
+
+if not transmit_button:
+    raise Exception("Transmitir button not founded")
+
+transmit_button.click()
+
+submit_message = WebDriverWait(driver, timeout=10).until(
+    lambda driver: driver.find_element(By.XPATH, '//*[@id="transmitidas"]/form/div[1]')
+)
+
+if not submit_message:
+    raise Exception("Submit message not founded")
+
+if "Nota fiscal transmitida com sucesso. E-mail enviado com sucesso." not in submit_message.text:
+    raise Exception(f"Falha na submissão da Nota Fiscal ({submit_message.text})")
+
+while(True):
+    pass
