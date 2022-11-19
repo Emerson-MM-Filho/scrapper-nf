@@ -27,3 +27,25 @@ if not login_button:
 
 login_button.click()
 
+login_field_settings = {
+    "usuario": "usuario",
+    "email": "email",
+    "senha": "senha",
+}
+
+for field_name, value in login_field_settings.items():
+    element = WebDriverWait(driver, timeout=10).until(
+        lambda driver: driver.find_element(By.NAME, field_name)
+    )
+    if not element:
+        raise Exception(f"{field_name.title()} button not founded")
+    element.send_keys(value)
+
+submit_button = WebDriverWait(driver, timeout=10).until(
+    lambda driver: driver.find_element(By.ID, "entrar")
+)
+
+if not submit_button:
+    raise Exception("Submit button not founded")
+submit_button.click()
+
