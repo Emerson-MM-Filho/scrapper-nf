@@ -1,7 +1,44 @@
+import argparse
+from typing import Dict, List
 from datetime import datetime
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.wait import WebDriverWait
+from operations import CliOperation, CliOperationsEnum
+
+parser = argparse.ArgumentParser(
+    prog="scrapper.py",
+    epilog="See repo: https://github.com/Emerson-MM-Filho/scrapper-nf-sc",
+    description="Scrapper Nota Fiscal Eletrônica Florianópolis.",
+    fromfile_prefix_chars="@"
+)
+
+parser.add_argument(
+    "-cmc",
+    "--codigomunicipal",
+    type=int,
+    help="Código municipal",
+    dest="cmc",
+    required=True,
+)
+parser.add_argument(
+    "-e",
+    "--email",
+    type=str,
+    help="Email",
+    dest="email",
+    required=True,
+)
+parser.add_argument(
+    "-p",
+    "--password",
+    type=str,
+    help="Senha",
+    dest="password",
+    required=True,
+)
+
+args = parser.parse_args()
 
 url = "https://nfps-e.pmf.sc.gov.br/frontend/#!/login"
 
@@ -29,9 +66,9 @@ if not login_button:
 login_button.click()
 
 login_field_settings = {
-    "usuario": "usuario",
-    "email": "email",
-    "senha": "senha",
+    "usuario": args.cmc,
+    "email": args.email,
+    "senha": args.password,
 }
 
 for field_name, value in login_field_settings.items():
