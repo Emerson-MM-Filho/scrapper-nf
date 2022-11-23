@@ -1,5 +1,5 @@
 import os
-from . import exceptions as scrapper_exceptions
+import exceptions as scrapper_exceptions
 from datetime import datetime
 from typing import Dict, List, Union
 from selenium import webdriver
