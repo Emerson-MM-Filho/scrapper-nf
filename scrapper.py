@@ -14,7 +14,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 class Scrapper(object):
     DOWNLOAD_DIRECTORY = F"{BASE_DIR}\\downloads"
-    DEFAULT_FIND_ELEMENT_TIME_OUT = 5
+    DEFAULT_FIND_ELEMENT_TIME_OUT = 15
     URL: str = "https://nfps-e.pmf.sc.gov.br/frontend/#!/login"
 
     def __init__(self, cmc: str, email: str, password: str):
