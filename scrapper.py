@@ -33,6 +33,10 @@ class Scrapper(object):
         }
 
     def login(self):
+        """
+            Make login at fiscal note platform
+            Raise ElementNotFounded if any element not founded
+        """
         self.driver.get(self.URL)
         login_button = self.find_element(By.XPATH, "/html/body/div[2]/div/div/form/div[10]/div", "Login button")
         login_button.click()
@@ -41,7 +45,7 @@ class Scrapper(object):
             element = WebDriverWait(self.driver, timeout=10).until(
                 lambda driver: driver.find_element(By.NAME, field_name)
             )
-            if not element: raise scrapper_exceptions.ElementNotFounded(f"{field_name} input")
+            if not element: raise scrapper_exceptions.ElementNotFoundedException(f"{field_name} input")
             element.send_keys(value)
 
         submit_login_button = self.find_element(By.ID, "entrar", "Submit login button")
@@ -79,40 +83,65 @@ class Scrapper(object):
         consult_button.click()
 
     def find_element(self, by: str, value: str, name: str) -> WebElement:
+        """
+            Return an element
+            Raise ElementNotFoundedException if not founded
+        """
         try:
             element = WebDriverWait(self.driver, timeout=self.DEFAULT_FIND_ELEMENT_TIME_OUT).until(
                 lambda driver: driver.find_element(by, value)
             )
         except selenium_exceptions.TimeoutException:
-            raise scrapper_exceptions.ElementNotFounded(name)
+            raise scrapper_exceptions.ElementNotFoundedException(name)
 
-        if not element: raise scrapper_exceptions.ElementNotFounded(name)
+        if not element: raise scrapper_exceptions.ElementNotFoundedException(name)
         return element
 
     def find_elements(self, by: str, value: str, name: str) -> List[WebElement]:
+        """
+            Return a list of elements
+            Raise ElementNotFoundedException if not founded
+        """
         try:
             element = WebDriverWait(self.driver, timeout=self.DEFAULT_FIND_ELEMENT_TIME_OUT).until(
                 lambda driver: driver.find_elements(by, value)
             )
         except selenium_exceptions.TimeoutException:
-            raise scrapper_exceptions.ElementNotFounded(name)
+            raise scrapper_exceptions.ElementNotFoundedException(name)
 
-        if not element: raise scrapper_exceptions.ElementNotFounded(name)
+        if not element: raise scrapper_exceptions.ElementNotFoundedException(name)
         return element
 
     def get_consult_result(self) -> List[WebElement]:
+        """
+            Return a list containing the fiscal notes foundeds on the consult
+            Raise ElementNotFoundedException if not founded
+        """
         return self.find_elements(By.XPATH, '//*[@id="transmitidas"]/table/tbody/tr', "Consult result rows")
 
     def get_last_consult_result(self) -> WebElement:
+        """
+            Return the last fiscal note founded at result
+            Raise ElementNotFoundedException if not founded
+        """
         return self.get_consult_result()[0]
 
     def download_last_consult_result(self) -> None:
+        """
+            Download the last fiscal note to DOWNLOAD_DIRECTORY
+            Raise ElementNotFoundedException if last fical note not founded
+        """
         self.run_consult()
         last_result = self.get_last_consult_result()
         download_button = last_result.find_element(By.XPATH, "//*/td/a")
         download_button.click()
 
     def clone_last_consult_result(self) -> None:
+        """
+            Clone the last fiscal note founded at consult
+            Raise ElementNotFoundedException if any element not founded
+            Raise FiscalNoteException if any element not founded
+        """
         self.run_consult()
         options_button = self.get_last_consult_result().find_element(By.XPATH, "//*/td/div/button")
         options_button.click()
@@ -135,7 +164,7 @@ class Scrapper(object):
         if correct_option_list:
             correct_option = correct_option_list[0]
 
-        if not correct_option: raise scrapper_exceptions.ElementNotFounded("AEDF option 0676722")
+        if not correct_option: raise scrapper_exceptions.ElementNotFoundedException("AEDF option 0676722")
         correct_option.click()
 
         emissao_input = self.find_element(By.ID, "inputDataEmissao", "Emission date input")

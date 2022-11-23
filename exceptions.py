@@ -1,4 +1,4 @@
-class ElementNotFounded(Exception):
+class ElementNotFoundedException(Exception):
     def __init__(self, element_name: str):
         self.element_name: str = element_name
 
