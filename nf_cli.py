@@ -2,7 +2,7 @@ import argparse
 from scrapper import Scrapper
 
 parser = argparse.ArgumentParser(
-    prog="scrapper.py",
+    prog="nf_cli.py",
     epilog="See repo: https://github.com/Emerson-MM-Filho/scrapper-nf-sc",
     description="Scrapper Nota Fiscal Eletrônica Florianópolis.",
     fromfile_prefix_chars="@"
