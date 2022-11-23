@@ -1,210 +1,163 @@
-import argparse
-from typing import Dict, List
+import os
+from . import exceptions as scrapper_exceptions
 from datetime import datetime
+from typing import Dict, List, Union
 from selenium import webdriver
+from selenium.common import exceptions as selenium_exceptions
+from selenium.webdriver.chrome.webdriver import WebDriver
+from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
+from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.support.wait import WebDriverWait
-from operations import CliOperation, CliOperationsEnum
 
-parser = argparse.ArgumentParser(
-    prog="scrapper.py",
-    epilog="See repo: https://github.com/Emerson-MM-Filho/scrapper-nf-sc",
-    description="Scrapper Nota Fiscal Eletrônica Florianópolis.",
-    fromfile_prefix_chars="@"
-)
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-parser.add_argument(
-    "-cmc",
-    "--codigomunicipal",
-    type=int,
-    help="Código municipal",
-    dest="cmc",
-    required=True,
-)
-parser.add_argument(
-    "-e",
-    "--email",
-    type=str,
-    help="Email",
-    dest="email",
-    required=True,
-)
-parser.add_argument(
-    "-p",
-    "--password",
-    type=str,
-    help="Senha",
-    dest="password",
-    required=True,
-)
+class Scrapper(object):
+    DOWNLOAD_DIRECTORY = F"{BASE_DIR}\\downloads"
+    DEFAULT_FIND_ELEMENT_TIME_OUT = 5
+    URL: str = "https://nfps-e.pmf.sc.gov.br/frontend/#!/login"
 
-args = parser.parse_args()
+    def __init__(self, cmc: str, email: str, password: str):
+        options = Options()
+        options.add_experimental_option(
+            "prefs",
+            {
+                "download.default_directory": self.DOWNLOAD_DIRECTORY,
+            },
+        )
+        self.driver: WebDriver = webdriver.Chrome(options=options)
+        self.login_field_settings: Dict = {
+            "usuario": cmc,
+            "email": email,
+            "senha": password,
+        }
 
-url = "https://nfps-e.pmf.sc.gov.br/frontend/#!/login"
+    def login(self):
+        self.driver.get(self.URL)
+        login_button = self.find_element(By.XPATH, "/html/body/div[2]/div/div/form/div[10]/div", "Login button")
+        login_button.click()
 
-driver = webdriver.Chrome()
+        for field_name, value in self.login_field_settings.items():
+            element = WebDriverWait(self.driver, timeout=10).until(
+                lambda driver: driver.find_element(By.NAME, field_name)
+            )
+            if not element: raise scrapper_exceptions.ElementNotFounded(f"{field_name} input")
+            element.send_keys(value)
 
-driver.get(url)
-login_buttons = WebDriverWait(driver, timeout=10).until(
-    lambda driver: driver.find_elements(By.CLASS_NAME, "label-recarrega")
-)
+        submit_login_button = self.find_element(By.ID, "entrar", "Submit login button")
+        submit_login_button.click()
 
-login_button_list = list(
-    filter(
-        lambda elem: "Realizar login sem certificado digital" in elem.text,
-        login_buttons
-    )
-)
+    def run_consult(
+        self,
+        taker_document: Union[str, None] = None,
+        taker_name: Union[str, None] = None,
+        start_date: Union[str, None] = None,
+        end_date: Union[str, None] = None
+    ):
+        """
+            Consult fiscal notes
+            Param taker_document recieve only numbers.
+                Ex.:
+                    CNPJ -> 53445313000110
+                    CPF -> 90038336057
+            Accepted format for start_date, end_date params -> "%d/%m/Y"
+        """
+        if taker_document is not None: 
+            taker_document_input = self.find_element(By.ID, "inputSearchDocTomador", "Taker document input")
+            taker_document_input.send_keys(taker_document)
+        if taker_name is not None:
+            taker_name_input = self.find_element(By.ID, "inputSearchNomeTomador", "Taker name input")
+            taker_name_input.send_keys(taker_name)
+        if start_date is not None:
+            start_date_input = self.find_element(By.ID, "inputSearchIniEmissao", "Start date input")
+            start_date_input.send_keys(start_date)
+        if end_date is not None:
+            end_date_input = self.find_element(By.ID, "inputSearchFimEmissao", "End date input")
+            end_date_input.send_keys(end_date)
 
-login_button = None
-if login_button_list:
-    login_button = login_button_list[0]
+        consult_button = self.find_element(By.XPATH, '//*[@id="transmitidas"]/form/div/div[5]/button', "Consult button")
+        consult_button.click()
 
-if not login_button:
-    raise Exception("Login button not founded")
+    def find_element(self, by: str, value: str, name: str) -> WebElement:
+        try:
+            element = WebDriverWait(self.driver, timeout=self.DEFAULT_FIND_ELEMENT_TIME_OUT).until(
+                lambda driver: driver.find_element(by, value)
+            )
+        except selenium_exceptions.TimeoutException:
+            raise scrapper_exceptions.ElementNotFounded(name)
 
-login_button.click()
+        if not element: raise scrapper_exceptions.ElementNotFounded(name)
+        return element
 
-login_field_settings = {
-    "usuario": args.cmc,
-    "email": args.email,
-    "senha": args.password,
-}
+    def find_elements(self, by: str, value: str, name: str) -> List[WebElement]:
+        try:
+            element = WebDriverWait(self.driver, timeout=self.DEFAULT_FIND_ELEMENT_TIME_OUT).until(
+                lambda driver: driver.find_elements(by, value)
+            )
+        except selenium_exceptions.TimeoutException:
+            raise scrapper_exceptions.ElementNotFounded(name)
 
-for field_name, value in login_field_settings.items():
-    element = WebDriverWait(driver, timeout=10).until(
-        lambda driver: driver.find_element(By.NAME, field_name)
-    )
-    if not element:
-        raise Exception(f"{field_name.title()} button not founded")
-    element.send_keys(value)
+        if not element: raise scrapper_exceptions.ElementNotFounded(name)
+        return element
 
-submit_button = WebDriverWait(driver, timeout=10).until(
-    lambda driver: driver.find_element(By.ID, "entrar")
-)
+    def get_consult_result(self) -> List[WebElement]:
+        return self.find_elements(By.XPATH, '//*[@id="transmitidas"]/table/tbody/tr', "Consult result rows")
 
-if not submit_button:
-    raise Exception("Submit button not founded")
-submit_button.click()
+    def get_last_consult_result(self) -> WebElement:
+        return self.get_consult_result()[0]
 
-consult_button = WebDriverWait(driver, timeout=10).until(
-    lambda driver: driver.find_element(By.XPATH, '//*[@id="transmitidas"]/form/div/div[5]/button')
-)
+    def download_last_consult_result(self) -> None:
+        self.run_consult()
+        last_result = self.get_last_consult_result()
+        download_button = last_result.find_element(By.XPATH, "//*/td/a")
+        download_button.click()
 
-if not consult_button:
-    raise Exception("Consultar button not founded")
+    def clone_last_consult_result(self) -> None:
+        self.run_consult()
+        options_button = self.get_last_consult_result().find_element(By.XPATH, "//*/td/div/button")
+        options_button.click()
 
-consult_button.click()
+        clone_button = self.get_last_consult_result().find_element(By.XPATH, '//*/td/div/ul/li[2]/a')
+        clone_button.click()
 
-options_button = WebDriverWait(driver, timeout=10).until(
-    lambda driver: driver.find_element(By.XPATH, '//*[@id="transmitidas"]/table/tbody/tr[1]/td[11]/div/button')
-)
+        tipo_nota_select = self.find_element(By.ID, "inputAedf", "AEDF input")
+        tipo_nota_select.click()
 
-if not options_button:
-    raise Exception("Consultar button not founded")
+        tipo_nota_options = tipo_nota_select.find_elements(By.TAG_NAME, "option")
+        correct_option_list = list(
+            filter(
+                lambda option: option.get_attribute('value') == "0676722",
+                tipo_nota_options
+            )
+        )
 
-options_button.click()
+        correct_option = None
+        if correct_option_list:
+            correct_option = correct_option_list[0]
 
-clone_button = WebDriverWait(driver, timeout=10).until(
-    lambda driver: driver.find_element(By.XPATH, '//*[@id="transmitidas"]/table/tbody/tr[1]/td[11]/div/ul/li[2]/a')
-)
+        if not correct_option: raise scrapper_exceptions.ElementNotFounded("AEDF option 0676722")
+        correct_option.click()
 
-if not clone_button:
-    raise Exception("Consultar button not founded")
+        emissao_input = self.find_element(By.ID, "inputDataEmissao", "Emission date input")
+        date = datetime.now()
+        date_str = date.strftime("%d/%m/%Y")
+        emissao_input.send_keys(date_str)
 
-clone_button.click()
+        confirm_button = self.find_element(By.XPATH, "//*/form/div/button[2]", "Confirm duplication button")
+        confirm_button.click()
 
-tipo_nota_select = WebDriverWait(driver, timeout=10).until(
-    lambda driver: driver.find_element(By.ID, "inputAedf")
-)
+        taker_data_continue_button = self.find_element(By.XPATH, "//*/div[1]/form/div[6]/button[2]", "Taker data continue button")
+        taker_data_continue_button.click()
 
-if not tipo_nota_select:
-    raise Exception("Tipo nota select not founded")
+        confirm_cfps_button = self.find_element(By.XPATH, "//*/div/form/div[2]/button[2]", "Confirm CFPS button")
+        confirm_cfps_button.click()
 
-tipo_nota_select.click()
+        service_data_continue_button = self.find_element(By.XPATH, "//*/div[2]/form/div[2]/button[3]", "Service data continue button")
+        service_data_continue_button.click()
 
-tipo_nota_options = tipo_nota_select.find_elements(By.TAG_NAME, "option")
+        transmit_button = self.find_element(By.ID, "transmitir", "Transmit button")
+        transmit_button.click()
 
-correct_option_list = list(
-    filter(
-        lambda option: option.get_attribute('value') == "0676722",
-        tipo_nota_options
-    )
-)
-
-correct_option = None
-if correct_option_list:
-    correct_option = correct_option_list[0]
-
-if not correct_option:
-    raise Exception("Login button not founded")
-
-correct_option.click()
-
-emissao_input = WebDriverWait(driver, timeout=10).until(
-    lambda driver: driver.find_element(By.ID, "inputDataEmissao")
-)
-if not emissao_input:
-    raise Exception(f"Data Emissão input not founded")
-
-date = datetime.now()
-date_str = date.strftime("%d/%m/%Y")
-emissao_input.send_keys(date_str)
-
-confirm_button = WebDriverWait(driver, timeout=10).until(
-    lambda driver: driver.find_element(By.XPATH, '/html/body/div[1]/div/div/div/form/div[2]/button[2]')
-)
-
-if not confirm_button:
-    raise Exception("Confirmar button not founded")
-
-confirm_button.click()
-
-continue_button_1 = WebDriverWait(driver, timeout=10).until(
-    lambda driver: driver.find_element(By.XPATH, '//*[@id="content-new-register"]/div/div[6]/div/div[3]/div[1]/form/div[6]/button[2]')
-)
-
-if not continue_button_1:
-    raise Exception("Continuar button 1 not founded")
-
-continue_button_1.click()
-
-confirm_cfps_button = WebDriverWait(driver, timeout=10).until(
-    lambda driver: driver.find_element(By.XPATH, '/html/body/div[1]/div/div/div/form/div[2]/button[2]')
-)
-
-if not confirm_cfps_button:
-    raise Exception("Confirma CFPS button not founded")
-
-confirm_cfps_button.click()
-
-continue_button_2 = WebDriverWait(driver, timeout=10).until(
-    lambda driver: driver.find_element(By.XPATH, '//*[@id="content-new-register"]/div/div[6]/div/div[2]/form/div[2]/button[3]')
-)
-
-if not continue_button_2:
-    raise Exception("Continuar button 2 button not founded")
-
-continue_button_2.click()
-
-transmit_button = WebDriverWait(driver, timeout=10).until(
-    lambda driver: driver.find_element(By.ID, 'transmitir')
-)
-
-if not transmit_button:
-    raise Exception("Transmitir button not founded")
-
-transmit_button.click()
-
-submit_message = WebDriverWait(driver, timeout=10).until(
-    lambda driver: driver.find_element(By.XPATH, '//*[@id="transmitidas"]/form/div[1]')
-)
-
-if not submit_message:
-    raise Exception("Submit message not founded")
-
-if "Nota fiscal transmitida com sucesso. E-mail enviado com sucesso." not in submit_message.text:
-    raise Exception(f"Falha na submissão da Nota Fiscal ({submit_message.text})")
-
-while(True):
-    pass
+        submit_message = self.find_element(By.XPATH, '//*[@id="transmitidas"]/form/div[1]', "Submit message")
+        if "Nota fiscal transmitida com sucesso. E-mail enviado com sucesso." not in submit_message.text:
+            raise scrapper_exceptions.FiscalNoteException("Clone", f"Falha na submissão da Nota Fiscal ({submit_message.text})")
