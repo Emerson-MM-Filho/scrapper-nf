@@ -1,5 +1,5 @@
 import argparse
-from scrapper import Scrapper
+from scrapper import CancelAction, Scrapper
 
 parser = argparse.ArgumentParser(
     prog="nf_cli.py",
@@ -50,18 +50,33 @@ parser.add_argument(
     default=False,
     required=False,
 )
+parser.add_argument(
+    "-rc",
+    "--requestconfirmation",
+    help="Run the scrapper as normaly, but don't conclude the operation, user should confirm the operation manually",
+    dest="request_confirmation",
+    action="store_true",
+    default=False,
+    required=False,
+)
 
 args = parser.parse_args()
 
-if __name__ == "__main__":
+def main():
     scrapper = Scrapper(args.cmc, args.email, args.password)
     scrapper.login()
 
     if args.should_clone_last:
-        scrapper.clone_last_consult_result()
+        try:
+            scrapper.clone_last_consult_result(args.request_confirmation)
+        except CancelAction:
+            raise
 
     if args.should_download_last:
         scrapper.download_last_consult_result()
 
-    while(True):
-        pass
+if __name__ == "__main__":
+    try:
+        main()
+    except CancelAction as exc:
+        print(exc)

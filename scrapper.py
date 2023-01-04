@@ -12,6 +12,9 @@ from selenium.webdriver.support.wait import WebDriverWait
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
+class CancelAction(Exception):
+    pass
+
 class Scrapper(object):
     DOWNLOAD_DIRECTORY = F"{BASE_DIR}\\downloads"
     DEFAULT_FIND_ELEMENT_TIME_OUT = 15
@@ -136,7 +139,7 @@ class Scrapper(object):
         download_button = last_result.find_element(By.XPATH, "//*/td/a")
         download_button.click()
 
-    def clone_last_consult_result(self) -> None:
+    def clone_last_consult_result(self, request_confirmation: bool) -> None:
         """
             Clone the last fiscal note founded at consult
             Raise ElementNotFoundedException if any element not founded
@@ -183,6 +186,11 @@ class Scrapper(object):
 
         service_data_continue_button = self.find_element(By.XPATH, "//*/div[2]/form/div[2]/button[3]", "Service data continue button")
         service_data_continue_button.click()
+
+        if request_confirmation:
+            confirmation = input("Type 'Y' to continue or 'N' to cancel: ")
+            if confirmation.upper() != "Y":
+                raise CancelAction("Confirmation refused")
 
         transmit_button = self.find_element(By.ID, "transmitir", "Transmit button")
         transmit_button.click()
